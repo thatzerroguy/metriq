@@ -1,0 +1,180 @@
+services:
+  # ============================================================================
+  # PostgreSQL Database Service
+  # ============================================================================
+  db:
+    image: postgres:17-alpine3.24
+    container_name: metriq-db
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # Redis Cache & Message Broker Service
+  # ============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: metriq-redis
+    restart: unless-stopped
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ============================================================================
+  # Database Migrations Service (runs before api starts)
+  # ============================================================================
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: db-migrate
+    container_name: metriq-migrate
+    restart: "no"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+    command: bun --filter=@metriq/database run db:migrate
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # ============================================================================
+  # API Service
+  # Relies on db and redis to be healthy, and migrations to finish before start
+  # ============================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    container_name: metriq-api
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${API_PORT}
+      BASE_URL: ${BASE_URL}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+    ports:
+      - "${API_PORT:-3001}:${API_PORT:-3001}"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    develop:
+      watch:
+        # Sync api source code on change without restarting (bun --watch handles hot reload)
+        - action: sync
+          path: ./apps/api
+          target: /app/apps/api
+          ignore:
+            - node_modules/
+        # Sync shared packages when changed
+        - action: sync
+          path: ./packages
+          target: /app/packages
+          ignore:
+            - "**/node_modules/"
+        # Restart container when environment variables change in .env
+        - action: restart
+          path: ./.env
+        # Rebuild container image when dependencies change
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./apps/api/package.json
+        - action: rebuild
+          path: ./bun.lock
+
+  # ============================================================================
+  # Web Service
+  # Frontend application with hot reload and file sync
+  # ============================================================================
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: web
+    container_name: metriq-web
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+      - path: ./apps/web/.env.local
+        required: false
+    environment:
+      NODE_ENV: ${NODE_ENV}
+      PORT: 3000
+      SERVER_URL: ${SERVER_URL}
+      VITE_APP_TITLE: ${VITE_APP_TITLE}
+    ports:
+      - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_started
+    develop:
+      watch:
+        # Sync web source code on change (Vite handles HMR)
+        - action: sync
+          path: ./apps/web
+          target: /app/apps/web
+          ignore:
+            - node_modules/
+            - .tanstack/
+        # Sync shared packages when changed
+        - action: sync
+          path: ./packages
+          target: /app/packages
+          ignore:
+            - "**/node_modules/"
+        # Restart container when environment variables change in .env
+        - action: restart
+          path: ./.env
+        - action: restart
+          path: ./apps/web/.env.local
+        # Rebuild container image when dependencies change
+        - action: rebuild
+          path: ./package.json
+        - action: rebuild
+          path: ./apps/web/package.json
+        - action: rebuild
+          path: ./bun.lock
+
+# ==============================================================================
+# Persistent Volumes
+# ==============================================================================
+volumes:
+  postgres-data:
+    driver: local
+  redis-data:
+    driver: local

@@ -4,7 +4,7 @@
   "mode": "file-router",
   "typescript": true,
   "packageManager": "bun",
-  "includeExamples": true,
+  "includeExamples": false,
   "tailwind": true,
   "projectPreset": "default",
   "routerOnly": false,
@@ -16,13 +16,12 @@
   "framework": "react",
   "chosenAddOns": [
     "biome",
-    "cloudflare",
     "form",
     "shadcn",
     "t3env",
-    "table",
     "better-auth",
     "store",
-    "tanstack-query"
+    "tanstack-query",
+    "table"
   ]
 }

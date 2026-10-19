@@ -1,10 +1,10 @@
-import { env } from "@metriq/config/env";
+import { databaseEnv } from "@metriq/config/env/database";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
 import { relations } from "./relations";
 
 const pool = new Pool({
-  connectionString: env.DATABASE_URL
+  connectionString: databaseEnv.DATABASE_URL,
 });
 
 export const db = drizzle({ client: pool, relations });

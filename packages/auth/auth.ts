@@ -1,4 +1,4 @@
-import { env } from "@metriq/config/env";
+import { authEnv } from "@metriq/config/env/auth";
 import { db } from "@metriq/database";
 import { accounts, sessions, users, verifications } from "@metriq/database/schema";
 import { betterAuth } from "better-auth";
@@ -8,7 +8,8 @@ import { admin, lastLoginMethod } from "better-auth/plugins";
 export const auth = betterAuth({
   appName: "Metriq",
   basePath: "/api/auth",
-  baseURL: env.BASE_URL,
+  baseURL: authEnv.BASE_URL,
+  secret: authEnv.BETTER_AUTH_SECRET,
   database: drizzleAdapter(db, {
     provider: "pg",
     transaction: true,
@@ -18,17 +19,19 @@ export const auth = betterAuth({
       users,
       accounts,
       sessions,
-      verifications
-    }
+      verifications,
+    },
   }),
   emailAndPassword: {
     enabled: true,
     autoSignIn: false,
-    requireEmailVerification: true
+    requireEmailVerification: true,
   },
   socialProviders: {},
   plugins: [
     admin(),
-    lastLoginMethod(),
-  ]
+    lastLoginMethod({
+      storeInDatabase: true,
+    }),
+  ],
 });

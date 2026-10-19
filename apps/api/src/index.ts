@@ -1,5 +1,5 @@
 import { auth } from "@metriq/auth";
-import { env } from "@metriq/config/env";
+import { apiEnv } from "@metriq/config/env";
 import { Hono } from "hono";
 import { requestId } from "hono/request-id";
 
@@ -35,10 +35,10 @@ app.on(["GET", "POST", "OPTIONS", "PATCH", "DELETE"], "/auth/*", (c) => auth.han
 
 console.log(`
     ╔═══════════════════════════════════════╗
-    ║            IDCODE API Server          ║
+    ║            Metriq API Server          ║
     ╚═══════════════════════════════════════╝
 
-    🚀 Development server started on port ${env.PORT}
+    🚀 Development server started on port ${apiEnv.PORT}
 
     Commands:
     - start: Start the server
@@ -50,5 +50,5 @@ console.log(`
 
 Bun.serve({
   fetch: app.fetch,
-  port: env.PORT
+  port: apiEnv.PORT
 });

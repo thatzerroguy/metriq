@@ -1,11 +1,11 @@
-import { defineConfig } from "drizzle-kit"
-import { env } from "@metriq/config/env"
+import { defineConfig } from "drizzle-kit";
+import { databaseEnv } from "@metriq/config/env/database";
 
 export default defineConfig({
   out: "./migrations",
   dialect: "postgresql",
   schema: "./schema/index.ts",
   dbCredentials: {
-    url: env.DATABASE_URL,
-  }
+    url: databaseEnv.DATABASE_URL,
+  },
 });
