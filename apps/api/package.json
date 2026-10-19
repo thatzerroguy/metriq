@@ -1,5 +1,5 @@
 {
-  "name": "api",
+  "name": "@metriq/api",
   "module": "index.ts",
   "type": "module",
   "private": true,
@@ -8,5 +8,23 @@
   },
   "peerDependencies": {
     "typescript": "^7"
+  },
+  "dependencies": {
+    "effect": "^4.0.5",
+    "hono": "^4.13.13",
+    "@metriq/config": "workspace:*",
+    "@metriq/database": "workspace:*",
+    "@metriq/auth": "workspace:*",
+    "@metriq/types": "workspace:*"
+  },
+  "scripts": {
+    "start": "bun run src/lib/migration.ts && bun run src/index.ts",
+    "dev": "bun --watch src/index.ts",
+    "debug": "bun --inspect-wait src/index.ts",
+    "db:generate": "bunx drizzle-kit generate",
+    "db:migrate": "bunx drizzle-kit migrate",
+    "db:push": "bunx drizzle-kit push",
+    "db:studio": "bunx drizzle-kit studio",
+    "email:dev": "email dev --dir src/lib/external/email/templates"
   }
 }

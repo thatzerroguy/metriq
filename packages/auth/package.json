@@ -1,0 +1,20 @@
+{
+  "name": "@metriq/auth",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^7"
+  },
+  "dependencies": {
+    "better-auth": "^1.7.10",
+    "@metriq/database": "workspace:*",
+    "@metriq/config": "workspace:*"
+  },
+  "exports": {
+    ".": "./auth.ts"
+  }
+}
